@@ -1480,3 +1480,16 @@ Thanks @AlexMikhalev, @CoreyH, @John-Rood, @KrauseFx, @MaudeBot, @Nachx639, @Nic
 ### Notes
 - This release establishes the stable CLI foundation for future agent and orchestration features.
 
+DalaiKarmaBot CLI 0.1.0-beta.5
+
+Adds first real runtime command: dalaikarmabot run
+
+Providers: ollama, groq, openrouter, deepseek, mistral
+
+Security-first onboarding: env-var key guidance, OS-aware setup, copy/paste examples
+
+Diagnostics: doctor checks local endpoints + API key presence; optional /models via --models
+
+Transparency tools: where, explain, --dry-run; CI flags --quiet, --json, --strict
+
+Foundation release focused on trust, minimal surface area, and predictable behavior.
