@@ -1,0 +1,72 @@
+// DalaiKarmaBot secure baseline profile.
+// Import/merge into your main config (config.json5) or paste sections.
+// Goal: safe-by-default on a VPS, with local-model support on your LAN.
+//
+// Notes:
+// - Gateway binds to loopback and expects auth token/password.
+// - Discovery is off (no mDNS broadcast).
+// - Sandbox is locked down (no network, read-only rootfs, dropped caps).
+// - Browser sandbox is disabled by default (enable only when you need it).
+
+{
+  gateway: {
+    bind: "loopback",
+    port: 18792,
+    auth: {
+      // Use ONE of these:
+      token: "${OPENCLAW_GATEWAY_TOKEN}",
+      // password: "${OPENCLAW_GATEWAY_PASSWORD}",
+      mode: "token",
+      // Extra safety if you run behind a reverse proxy:
+      trustedProxies: [],
+      // Only needed if you enable remote routing.
+      // allowFrom: ["127.0.0.1/32"],
+    },
+    discovery: {
+      mdns: { mode: "off" },
+      wideArea: { enabled: false },
+    },
+    controlUi: {
+      enabled: true,
+      // basePath: "/",
+    },
+    http: {
+      endpoints: {
+        chatCompletions: { enabled: false },
+        responses: { enabled: true },
+      },
+    },
+  },
+
+  agents: {
+    main: {
+      identity: { name: "DalaiKarmaBot", avatar: "🪷" },
+    },
+  },
+
+  // Local / self-hosted model providers:
+  // Add either `models.providers.lmstudio` (OpenAI-compatible) or `models.providers.ollama`.
+  // See docs in examples/local-models/*.json5
+  models: { mode: "merge", providers: {} },
+
+  // Lock down execution environment
+  agents: {
+    defaults: {
+      sandbox: {
+        mode: "non-main",
+        workspaceAccess: "ro",
+        scope: "session",
+        perSession: true,
+        docker: {
+          readOnlyRoot: true,
+          network: "none",
+          capDrop: ["ALL"],
+          pidsLimit: 256,
+          memory: "1024m",
+          cpus: 1,
+        },
+        browser: { enabled: false },
+      },
+    },
+  },
+}

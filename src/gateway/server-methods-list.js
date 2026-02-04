@@ -1,0 +1,121 @@
+"use strict";
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.GATEWAY_EVENTS = void 0;
+exports.listGatewayMethods = listGatewayMethods;
+var index_js_1 = require("../channels/plugins/index.js");
+var BASE_METHODS = [
+    "health",
+    "logs.tail",
+    "channels.status",
+    "channels.logout",
+    "status",
+    "usage.status",
+    "usage.cost",
+    "tts.status",
+    "tts.providers",
+    "tts.enable",
+    "tts.disable",
+    "tts.convert",
+    "tts.setProvider",
+    "config.get",
+    "config.set",
+    "config.apply",
+    "config.patch",
+    "config.schema",
+    "exec.approvals.get",
+    "exec.approvals.set",
+    "exec.approvals.node.get",
+    "exec.approvals.node.set",
+    "exec.approval.request",
+    "exec.approval.resolve",
+    "wizard.start",
+    "wizard.next",
+    "wizard.cancel",
+    "wizard.status",
+    "talk.mode",
+    "models.list",
+    "agents.list",
+    "skills.status",
+    "skills.bins",
+    "skills.install",
+    "skills.update",
+    "update.run",
+    "voicewake.get",
+    "voicewake.set",
+    "sessions.list",
+    "sessions.preview",
+    "sessions.patch",
+    "sessions.reset",
+    "sessions.delete",
+    "sessions.compact",
+    "last-heartbeat",
+    "set-heartbeats",
+    "wake",
+    "node.pair.request",
+    "node.pair.list",
+    "node.pair.approve",
+    "node.pair.reject",
+    "node.pair.verify",
+    "device.pair.list",
+    "device.pair.approve",
+    "device.pair.reject",
+    "device.token.rotate",
+    "device.token.revoke",
+    "node.rename",
+    "node.list",
+    "node.describe",
+    "node.invoke",
+    "node.invoke.result",
+    "node.event",
+    "cron.list",
+    "cron.status",
+    "cron.add",
+    "cron.update",
+    "cron.remove",
+    "cron.run",
+    "cron.runs",
+    "system-presence",
+    "system-event",
+    "send",
+    "agent",
+    "agent.identity.get",
+    "agent.wait",
+    "browser.request",
+    // WebChat WebSocket-native chat methods
+    "chat.history",
+    "chat.abort",
+    "chat.send",
+];
+function listGatewayMethods() {
+    var channelMethods = (0, index_js_1.listChannelPlugins)().flatMap(function (plugin) { var _a; return (_a = plugin.gatewayMethods) !== null && _a !== void 0 ? _a : []; });
+    return Array.from(new Set(__spreadArray(__spreadArray([], BASE_METHODS, true), channelMethods, true)));
+}
+exports.GATEWAY_EVENTS = [
+    "connect.challenge",
+    "agent",
+    "chat",
+    "presence",
+    "tick",
+    "talk.mode",
+    "shutdown",
+    "health",
+    "heartbeat",
+    "cron",
+    "node.pair.requested",
+    "node.pair.resolved",
+    "node.invoke.request",
+    "device.pair.requested",
+    "device.pair.resolved",
+    "voicewake.changed",
+    "exec.approval.requested",
+    "exec.approval.resolved",
+];

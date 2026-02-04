@@ -1,0 +1,12 @@
+﻿{
+  "name": "openclaw",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js"
+  },
+  "dependencies": {
+    "@emergedai-cmd/dalaikarmabot": "workspace:*"
+  }
+}

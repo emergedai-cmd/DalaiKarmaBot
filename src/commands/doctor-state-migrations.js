@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.runLegacyStateMigrations = exports.resetAutoMigrateLegacyStateForTest = exports.resetAutoMigrateLegacyAgentDirForTest = exports.resetAutoMigrateLegacyStateDirForTest = exports.migrateLegacyAgentDir = exports.detectLegacyStateMigrations = exports.autoMigrateLegacyState = exports.autoMigrateLegacyAgentDir = exports.autoMigrateLegacyStateDir = void 0;
+var state_migrations_js_1 = require("../infra/state-migrations.js");
+Object.defineProperty(exports, "autoMigrateLegacyStateDir", { enumerable: true, get: function () { return state_migrations_js_1.autoMigrateLegacyStateDir; } });
+Object.defineProperty(exports, "autoMigrateLegacyAgentDir", { enumerable: true, get: function () { return state_migrations_js_1.autoMigrateLegacyAgentDir; } });
+Object.defineProperty(exports, "autoMigrateLegacyState", { enumerable: true, get: function () { return state_migrations_js_1.autoMigrateLegacyState; } });
+Object.defineProperty(exports, "detectLegacyStateMigrations", { enumerable: true, get: function () { return state_migrations_js_1.detectLegacyStateMigrations; } });
+Object.defineProperty(exports, "migrateLegacyAgentDir", { enumerable: true, get: function () { return state_migrations_js_1.migrateLegacyAgentDir; } });
+Object.defineProperty(exports, "resetAutoMigrateLegacyStateDirForTest", { enumerable: true, get: function () { return state_migrations_js_1.resetAutoMigrateLegacyStateDirForTest; } });
+Object.defineProperty(exports, "resetAutoMigrateLegacyAgentDirForTest", { enumerable: true, get: function () { return state_migrations_js_1.resetAutoMigrateLegacyAgentDirForTest; } });
+Object.defineProperty(exports, "resetAutoMigrateLegacyStateForTest", { enumerable: true, get: function () { return state_migrations_js_1.resetAutoMigrateLegacyStateForTest; } });
+Object.defineProperty(exports, "runLegacyStateMigrations", { enumerable: true, get: function () { return state_migrations_js_1.runLegacyStateMigrations; } });

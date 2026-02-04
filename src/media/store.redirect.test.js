@@ -1,0 +1,199 @@
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (g && (g = 0, op[0] && (_ = 0)), _) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+var jszip_1 = require("jszip");
+var promises_1 = require("node:fs/promises");
+var node_path_1 = require("node:path");
+var node_stream_1 = require("node:stream");
+var vitest_1 = require("vitest");
+var realOs = await vitest_1.vi.importActual("node:os");
+var HOME = node_path_1.default.join(realOs.tmpdir(), "openclaw-home-redirect");
+var mockRequest = vitest_1.vi.fn();
+vitest_1.vi.doMock("node:os", function () { return ({
+    default: { homedir: function () { return HOME; }, tmpdir: function () { return realOs.tmpdir(); } },
+    homedir: function () { return HOME; },
+    tmpdir: function () { return realOs.tmpdir(); },
+}); });
+vitest_1.vi.doMock("node:https", function () { return ({
+    request: function () {
+        var args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            args[_i] = arguments[_i];
+        }
+        return mockRequest.apply(void 0, args);
+    },
+}); });
+vitest_1.vi.doMock("node:dns/promises", function () { return ({
+    lookup: function () { return __awaiter(void 0, void 0, void 0, function () { return __generator(this, function (_a) {
+        return [2 /*return*/, [{ address: "93.184.216.34", family: 4 }]];
+    }); }); },
+}); });
+var loadStore = function () { return __awaiter(void 0, void 0, void 0, function () { return __generator(this, function (_a) {
+    switch (_a.label) {
+        case 0: return [4 /*yield*/, Promise.resolve().then(function () { return require("./store.js"); })];
+        case 1: return [2 /*return*/, _a.sent()];
+    }
+}); }); };
+(0, vitest_1.describe)("media store redirects", function () {
+    (0, vitest_1.beforeAll)(function () { return __awaiter(void 0, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, promises_1.default.rm(HOME, { recursive: true, force: true })];
+                case 1:
+                    _a.sent();
+                    return [2 /*return*/];
+            }
+        });
+    }); });
+    (0, vitest_1.beforeEach)(function () {
+        mockRequest.mockReset();
+        vitest_1.vi.resetModules();
+    });
+    (0, vitest_1.afterAll)(function () { return __awaiter(void 0, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, promises_1.default.rm(HOME, { recursive: true, force: true })];
+                case 1:
+                    _a.sent();
+                    vitest_1.vi.clearAllMocks();
+                    return [2 /*return*/];
+            }
+        });
+    }); });
+    (0, vitest_1.it)("follows redirects and keeps detected mime/extension", function () { return __awaiter(void 0, void 0, void 0, function () {
+        var saveMediaSource, call, saved, _a;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0: return [4 /*yield*/, loadStore()];
+                case 1:
+                    saveMediaSource = (_b.sent()).saveMediaSource;
+                    call = 0;
+                    mockRequest.mockImplementation(function (_url, _opts, cb) {
+                        call += 1;
+                        var res = new node_stream_1.PassThrough();
+                        var req = {
+                            on: function (event, handler) {
+                                if (event === "error") {
+                                    res.on("error", handler);
+                                }
+                                return req;
+                            },
+                            end: function () { return undefined; },
+                            destroy: function () { return res.destroy(); },
+                        };
+                        if (call === 1) {
+                            res.statusCode = 302;
+                            res.headers = { location: "https://example.com/final" };
+                            setImmediate(function () {
+                                cb(res);
+                                res.end();
+                            });
+                        }
+                        else {
+                            res.statusCode = 200;
+                            res.headers = { "content-type": "text/plain" };
+                            setImmediate(function () {
+                                cb(res);
+                                res.write("redirected");
+                                res.end();
+                            });
+                        }
+                        return req;
+                    });
+                    return [4 /*yield*/, saveMediaSource("https://example.com/start")];
+                case 2:
+                    saved = _b.sent();
+                    (0, vitest_1.expect)(mockRequest).toHaveBeenCalledTimes(2);
+                    (0, vitest_1.expect)(saved.contentType).toBe("text/plain");
+                    (0, vitest_1.expect)(node_path_1.default.extname(saved.path)).toBe(".txt");
+                    _a = vitest_1.expect;
+                    return [4 /*yield*/, promises_1.default.readFile(saved.path, "utf8")];
+                case 3:
+                    _a.apply(void 0, [_b.sent()]).toBe("redirected");
+                    return [2 /*return*/];
+            }
+        });
+    }); });
+    (0, vitest_1.it)("sniffs xlsx from zip content when headers and url extension are missing", function () { return __awaiter(void 0, void 0, void 0, function () {
+        var saveMediaSource, saved;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, loadStore()];
+                case 1:
+                    saveMediaSource = (_a.sent()).saveMediaSource;
+                    mockRequest.mockImplementationOnce(function (_url, _opts, cb) {
+                        var res = new node_stream_1.PassThrough();
+                        var req = {
+                            on: function (event, handler) {
+                                if (event === "error") {
+                                    res.on("error", handler);
+                                }
+                                return req;
+                            },
+                            end: function () { return undefined; },
+                            destroy: function () { return res.destroy(); },
+                        };
+                        res.statusCode = 200;
+                        res.headers = {};
+                        setImmediate(function () {
+                            cb(res);
+                            var zip = new jszip_1.default();
+                            zip.file("[Content_Types].xml", '<Types><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/></Types>');
+                            zip.file("xl/workbook.xml", "<workbook/>");
+                            void zip
+                                .generateAsync({ type: "nodebuffer" })
+                                .then(function (buf) {
+                                res.write(buf);
+                                res.end();
+                            })
+                                .catch(function (err) {
+                                res.destroy(err);
+                            });
+                        });
+                        return req;
+                    });
+                    return [4 /*yield*/, saveMediaSource("https://example.com/download")];
+                case 2:
+                    saved = _a.sent();
+                    (0, vitest_1.expect)(saved.contentType).toBe("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                    (0, vitest_1.expect)(node_path_1.default.extname(saved.path)).toBe(".xlsx");
+                    return [2 /*return*/];
+            }
+        });
+    }); });
+});

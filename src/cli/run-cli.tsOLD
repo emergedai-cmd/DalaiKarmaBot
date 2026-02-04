@@ -1,0 +1,141 @@
+import fs from "node:fs/promises";
+import readline from "node:readline";
+import { getPaths } from "./plan.js";
+
+type RunOpts = {
+  provider: string;
+  model: string;
+  prompt?: string;
+  timeoutMs: number;
+};
+
+type Config = {
+  providers?: {
+    ollama?: { baseUrl?: string };
+  };
+};
+
+function normalizeBaseUrl(u?: string): string | null {
+  if (!u) return null;
+  const s = u.trim();
+  if (!s) return null;
+  return s.replace(/\/+$/, "");
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...init, signal: ctrl.signal });
+    return res;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function readConfig(cwd: string): Promise<Config | null> {
+  const { configPath } = getPaths(cwd);
+  try {
+    const raw = await fs.readFile(configPath, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+async function ollamaChat(baseUrl: string, model: string, messages: Array<{ role: string; content: string }>, timeoutMs: number) {
+  const url = `${baseUrl}/api/chat`;
+  const body = {
+    model,
+    messages,
+    stream: false
+  };
+
+  const res = await fetchWithTimeout(
+    url,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    },
+    timeoutMs
+  );
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Ollama HTTP ${res.status}: ${text || res.statusText}`);
+  }
+
+  const json = (await res.json()) as any;
+  const content = json?.message?.content;
+  if (typeof content !== "string") throw new Error("Unexpected Ollama response shape (missing message.content)");
+  return content;
+}
+
+export async function runRun(cwd: string, opts: RunOpts) {
+  const cfg = await readConfig(cwd);
+  if (!cfg) {
+    console.error("❌ Config not found or invalid JSON. Run: dalaikarmabot init");
+    process.exitCode = 2;
+    return;
+  }
+
+  const provider = (opts.provider || "").toLowerCase();
+  if (provider !== "ollama") {
+    console.error(`❌ Unsupported provider: ${opts.provider}. Only 'ollama' is supported right now.`);
+    process.exitCode = 2;
+    return;
+  }
+
+  const baseUrl = normalizeBaseUrl(cfg.providers?.ollama?.baseUrl) ?? "http://localhost:11434";
+
+  if (!opts.model) {
+    console.error("❌ Missing --model. Example: dalaikarmabot run --provider ollama --model llama3");
+    process.exitCode = 2;
+    return;
+  }
+
+  const timeoutMs = Number.isFinite(opts.timeoutMs) ? opts.timeoutMs : 15000;
+
+  // One-shot mode
+  if (opts.prompt && opts.prompt.trim()) {
+    const messages = [{ role: "user", content: opts.prompt.trim() }];
+    const out = await ollamaChat(baseUrl, opts.model, messages, timeoutMs);
+    process.stdout.write(out + "\n");
+    return;
+  }
+
+  // Interactive mode
+  console.log(`🤖 DalaiKarmaBot run (provider=ollama, model=${opts.model})`);
+  console.log(`Ollama: ${baseUrl}`);
+  console.log("Type /exit to quit.\n");
+
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const messages: Array<{ role: string; content: string }> = [];
+
+  const ask = (q: string) => new Promise<string>((resolve) => rl.question(q, resolve));
+
+  try {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const input = (await ask("> ")).trim();
+      if (!input) continue;
+      if (input === "/exit" || input === "/quit") break;
+
+      messages.push({ role: "user", content: input });
+
+      let out: string;
+      try {
+        out = await ollamaChat(baseUrl, opts.model, messages, timeoutMs);
+      } catch (e: any) {
+        console.error(`❌ Error: ${e?.message ?? String(e)}`);
+        continue;
+      }
+
+      console.log(out + "\n");
+      messages.push({ role: "assistant", content: out });
+    }
+  } finally {
+    rl.close();
+  }
+}

@@ -1,0 +1,14 @@
+@'
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "noEmitOnError": true
+  },
+  "include": [
+    "src/cli/**/*",
+    "src/commands/**/*",
+    "src/index.ts"
+  ]
+}
+'@ | Set-Content -Encoding UTF8 .\tsconfig.build.json

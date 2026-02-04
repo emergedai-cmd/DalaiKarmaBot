@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.stopSharedClient = exports.waitForMatrixSync = exports.resolveSharedMatrixClient = exports.createMatrixClient = exports.resolveMatrixAuth = exports.resolveMatrixConfig = exports.isBunRuntime = void 0;
+var runtime_js_1 = require("./client/runtime.js");
+Object.defineProperty(exports, "isBunRuntime", { enumerable: true, get: function () { return runtime_js_1.isBunRuntime; } });
+var config_js_1 = require("./client/config.js");
+Object.defineProperty(exports, "resolveMatrixConfig", { enumerable: true, get: function () { return config_js_1.resolveMatrixConfig; } });
+Object.defineProperty(exports, "resolveMatrixAuth", { enumerable: true, get: function () { return config_js_1.resolveMatrixAuth; } });
+var create_client_js_1 = require("./client/create-client.js");
+Object.defineProperty(exports, "createMatrixClient", { enumerable: true, get: function () { return create_client_js_1.createMatrixClient; } });
+var shared_js_1 = require("./client/shared.js");
+Object.defineProperty(exports, "resolveSharedMatrixClient", { enumerable: true, get: function () { return shared_js_1.resolveSharedMatrixClient; } });
+Object.defineProperty(exports, "waitForMatrixSync", { enumerable: true, get: function () { return shared_js_1.waitForMatrixSync; } });
+Object.defineProperty(exports, "stopSharedClient", { enumerable: true, get: function () { return shared_js_1.stopSharedClient; } });

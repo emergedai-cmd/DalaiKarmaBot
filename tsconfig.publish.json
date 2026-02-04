@@ -1,0 +1,40 @@
+﻿{
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "declaration": true,
+    "sourceMap": true,
+    "noEmitOnError": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/cli/init/**/*.ts",
+    "src/cli/program/**/*.ts",
+    "src/cli/**/*.ts"
+  ],
+  "exclude": [
+    "src/cli/nodes-*.ts",
+    "src/cli/nodes/**/*.ts",
+
+    "src/agents/**",
+    "src/commands/**",
+    "src/gateway/**",
+    "src/channels/**",
+    "src/slack/**",
+    "src/telegram/**",
+    "src/browser/**",
+    "src/ui/**",
+    "extensions/**",
+    "apps/**",
+    "packages/**",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "**/vitest*.ts"
+  ],
+  "references": []
+}
