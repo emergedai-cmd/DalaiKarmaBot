@@ -2,6 +2,21 @@
 
 Docs: https://docs.openclaw.ai
 
+## 2026.2.5
+## 0.1.0-beta.5 — DalaiKarmaBot CLI
+
+### Added
+- `dalaikarmabot run` (ollama, groq, openrouter, deepseek, mistral)
+- Provider routing with OpenAI-compatible APIs
+- Security-first onboarding (env vars only)
+- `doctor` diagnostics with optional `/models`
+- `where` and `explain` transparency commands
+
+### Security
+- No secrets written to disk
+- No implicit network calls
+
+
 ## 2026.2.2
 
 ### Changes
