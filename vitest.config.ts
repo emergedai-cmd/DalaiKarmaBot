@@ -3,6 +3,16 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
+// IMPORTANT:
+// This repo is "type": "module", so .js files are treated as ESM by Node.
+// Some legacy source files under src/** are CommonJS (.js using `exports`/`require`).
+// Vite/Vitest does not automatically apply CJS interop to *source* .js the way it does for deps.
+// We explicitly enable CommonJS transform for src/**/*.js to prevent:
+//   ReferenceError: exports is not defined in ES module scope
+//
+// If you later migrate all src/**/*.js to real ESM (or rename them to .cjs), you can remove this.
+import commonjs from "@rollup/plugin-commonjs";
+
 const repoRoot = path.dirname(fileURLToPath(import.meta.url));
 const isCI = process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
 const isWindows = process.platform === "win32";
@@ -10,14 +20,32 @@ const localWorkers = Math.max(4, Math.min(16, os.cpus().length));
 const ciWorkers = isWindows ? 2 : 3;
 
 export default defineConfig({
+  // Apply CJS -> ESM interop to *source* JS files as well.
+  plugins: [
+    commonjs({
+      include: [
+        /src\/.*\.js$/,
+        /src\/.*\.cjs$/,
+      ],
+      transformMixedEsModules: true,
+      requireReturnsDefault: "auto",
+    }),
+  ],
+
   resolve: {
     alias: {
       "openclaw/plugin-sdk": path.join(repoRoot, "src", "plugin-sdk", "index.ts"),
     },
   },
+
+  // Make SSR bundling handle local CJS-ish modules consistently.
+  ssr: {
+    noExternal: true,
+  },
+
   test: {
-    testTimeout: 120_000,
-    hookTimeout: isWindows ? 180_000 : 120_000,
+    testTimeout: 120000,
+    hookTimeout: isWindows ? 180000 : 120000,
     pool: "forks",
     maxWorkers: isCI ? ciWorkers : localWorkers,
     include: ["src/**/*.test.ts", "extensions/**/*.test.ts", "test/format-error.test.ts"],
@@ -53,7 +81,6 @@ export default defineConfig({
         "src/daemon/**",
         "src/hooks/**",
         "src/macos/**",
-
         // Some agent integrations are intentionally validated via manual/e2e runs.
         "src/agents/model-scan.ts",
         "src/agents/pi-embedded-runner.ts",
@@ -63,7 +90,6 @@ export default defineConfig({
         "src/agents/pi-tool-definition-adapter.ts",
         "src/agents/tools/discord-actions*.ts",
         "src/agents/tools/slack-actions.ts",
-
         // Gateway server integration surfaces are intentionally validated via manual/e2e runs.
         "src/gateway/control-ui.ts",
         "src/gateway/server-bridge.ts",
@@ -74,7 +100,6 @@ export default defineConfig({
         "src/gateway/server-methods/talk.ts",
         "src/gateway/server-methods/web.ts",
         "src/gateway/server-methods/wizard.ts",
-
         // Process bridges are hard to unit-test in isolation.
         "src/gateway/call.ts",
         "src/process/tau-rpc.ts",

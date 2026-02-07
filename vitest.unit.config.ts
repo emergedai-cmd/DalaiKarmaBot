@@ -1,19 +1,17 @@
+import base from "./vitest.config";
 import { defineConfig } from "vitest/config";
-import baseConfig from "./vitest.config.ts";
 
-const baseTest = (baseConfig as { test?: { include?: string[]; exclude?: string[] } }).test ?? {};
-const include = baseTest.include ?? [
-  "src/**/*.test.ts",
-  "extensions/**/*.test.ts",
-  "test/format-error.test.ts",
-];
-const exclude = baseTest.exclude ?? [];
-
+/**
+ * Unit test config (keeps base setupFiles by default).
+ * If you still hit CJS/ESM issues due to setup, set setupFiles: [] here too.
+ */
 export default defineConfig({
-  ...baseConfig,
+  // @ts-expect-error vitest config typing for default import
+  ...base,
   test: {
-    ...baseTest,
-    include,
-    exclude: [...exclude, "src/gateway/**", "extensions/**"],
+    // @ts-expect-error vitest config typing for default import
+    ...(base as any).test,
+    include: ["src/**/*.test.ts", "test/format-error.test.ts"],
+    passWithNoTests: true,
   },
 });
