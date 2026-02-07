@@ -1,6 +1,6 @@
 {
   "name": "@emergedai-cmd/dalaikarmabot",
-  "version": "0.1.0-beta.5",
+  "version": "0.1.0-beta.7",
   "description": "WhatsApp gateway CLI (Baileys web) with Pi RPC agent (DalaiKarmaBot hardened fork)",
   "keywords": [],
   "license": "MIT",
@@ -89,13 +89,10 @@
     "android:install": "cd apps/android && ./gradlew :app:installDebug",
     "android:run": "cd apps/android && ./gradlew :app:installDebug && adb shell am start -n ai.openclaw.android/.MainActivity",
     "android:test": "cd apps/android && ./gradlew :app:testDebugUnitTest",
-
     "build:min": "tsc -p tsconfig.publish-minimal.json --noEmit false",
     "build:publish": "tsc -p tsconfig.publish.json --noEmit false",
     "build:full": "tsc -p tsconfig.publish.json --noEmit false && node --import tsx scripts/canvas-a2ui-copy.ts && node --import tsx scripts/copy-hook-metadata.ts && node --import tsx scripts/write-build-info.ts",
-
     "build": "node -e \"process.exit(process.env.DKB_PUBLISH_MINIMAL==='1'?0:1)\" && pnpm build:min || pnpm build:full",
-
     "canvas:a2ui:bundle": "node -e \"const {execSync}=require('child_process');if(process.platform==='win32'){console.log('Skipping canvas:a2ui:bundle on Windows');process.exit(0)}execSync('bash scripts/bundle-a2ui.sh',{stdio:'inherit'});\"",
     "check": "pnpm tsgo && pnpm lint && pnpm format",
     "check:loc": "node --import tsx scripts/check-ts-max-loc.ts --max 500",
@@ -126,11 +123,8 @@
     "openclaw": "node scripts/run-node.mjs",
     "openclaw:rpc": "node scripts/run-node.mjs agent --mode rpc --json",
     "plugins:sync": "node --import tsx scripts/sync-plugin-versions.ts",
-
     "postinstall": "node -e \"process.exit(0)\"",
-
     "prepack": "pnpm build:min && node -e \"const {execSync}=require('child_process');if(process.platform==='win32'){console.log('Skipping ui:build on Windows');process.exit(0)}execSync('pnpm ui:build',{stdio:'inherit'});\"",
-
     "protocol:check": "pnpm protocol:gen && pnpm protocol:gen:swift && git diff --exit-code -- dist/protocol.schema.json apps/macos/Sources/OpenClawProtocol/GatewayModels.swift",
     "protocol:gen": "node --import tsx scripts/protocol-gen.ts",
     "protocol:gen:swift": "node --import tsx scripts/protocol-gen-swift.ts",
