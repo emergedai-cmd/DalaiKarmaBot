@@ -1,47 +1,32 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.logAcceptedEnvOption = logAcceptedEnvOption;
-exports.normalizeZaiEnv = normalizeZaiEnv;
-exports.isTruthyEnvValue = isTruthyEnvValue;
-exports.normalizeEnv = normalizeEnv;
-var subsystem_js_1 = require("../logging/subsystem.js");
-var boolean_js_1 = require("../utils/boolean.js");
-var log = (0, subsystem_js_1.createSubsystemLogger)("env");
-var loggedEnv = new Set();
-function formatEnvValue(value, redact) {
-    if (redact) {
-        return "<redacted>";
-    }
-    var singleLine = value.replace(/\s+/g, " ").trim();
-    if (singleLine.length <= 160) {
-        return singleLine;
-    }
-    return "".concat(singleLine.slice(0, 160), "\u2026");
+import process from "process";
+
+// ESM-only env helpers (deterministic, quiet).
+
+function parseBooleanValue(value) {
+  if (value == null) return undefined;
+  const v = String(value).trim().toLowerCase();
+  if (!v) return undefined;
+
+  if (v === "1" || v === "true" || v === "yes" || v === "y" || v === "on") return true;
+  if (v === "0" || v === "false" || v === "no" || v === "n" || v === "off") return false;
+
+  return undefined;
 }
-function logAcceptedEnvOption(option) {
-    var _a;
-    if (process.env.VITEST || process.env.NODE_ENV === "test") {
-        return;
-    }
-    if (loggedEnv.has(option.key)) {
-        return;
-    }
-    var rawValue = (_a = option.value) !== null && _a !== void 0 ? _a : process.env[option.key];
-    if (!rawValue || !rawValue.trim()) {
-        return;
-    }
-    loggedEnv.add(option.key);
-    log.info("env: ".concat(option.key, "=").concat(formatEnvValue(rawValue, option.redact), " (").concat(option.description, ")"));
+
+export function logAcceptedEnvOption(_option) {
+  // Intentionally silent in DalaiKarmaBot core to avoid stdout/stderr noise.
 }
-function normalizeZaiEnv() {
-    var _a, _b;
-    if (!((_a = process.env.ZAI_API_KEY) === null || _a === void 0 ? void 0 : _a.trim()) && ((_b = process.env.Z_AI_API_KEY) === null || _b === void 0 ? void 0 : _b.trim())) {
-        process.env.ZAI_API_KEY = process.env.Z_AI_API_KEY;
-    }
+
+export function normalizeZaiEnv() {
+  if (!process.env.ZAI_API_KEY?.trim() && process.env.Z_AI_API_KEY?.trim()) {
+    process.env.ZAI_API_KEY = process.env.Z_AI_API_KEY;
+  }
 }
-function isTruthyEnvValue(value) {
-    return (0, boolean_js_1.parseBooleanValue)(value) === true;
+
+export function isTruthyEnvValue(value) {
+  return parseBooleanValue(value) === true;
 }
-function normalizeEnv() {
-    normalizeZaiEnv();
+
+export function normalizeEnv() {
+  normalizeZaiEnv();
 }

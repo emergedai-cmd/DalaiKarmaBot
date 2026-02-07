@@ -92,6 +92,22 @@ var entries = [
         }); },
     },
     {
+    name: "run",
+    description: "Run DalaiKarmaBot (interactive or one-shot; Groq default)",
+    register: function (program) { return __awaiter(void 0, void 0, void 0, function () {
+        var mod;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, Promise.resolve().then(function () { return require("../run-subcli.js"); })];
+                case 1:
+                    mod = _a.sent();
+                    mod.registerRunCli(program);
+                    return [2 /*return*/];
+            }
+        });
+    }); },
+},
+{
         name: "acp",
         description: "Agent Control Protocol tools",
         register: function (program) { return __awaiter(void 0, void 0, void 0, function () {

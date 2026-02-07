@@ -1,7 +1,8 @@
-import fs from "fs";
-import path from "path";
-import process from "process";
-import { fileURLToPath } from "url";
+import fs from "node:fs";
+import path from "node:path";
+import process from "node:process";
+import { fileURLToPath } from "node:url";
+
 import { loadDotEnv } from "../infra/dotenv.js";
 import { normalizeEnv } from "../infra/env.js";
 import { formatUncaughtError } from "../infra/errors.js";
@@ -10,57 +11,61 @@ import { ensureOpenClawCliOnPath } from "../infra/path-env.js";
 import { assertSupportedRuntime } from "../infra/runtime-guard.js";
 import { installUnhandledRejectionHandler } from "../infra/unhandled-rejections.js";
 import { enableConsoleCapture } from "../logging.js";
-import { getPrimaryCommand, hasHelpOrVersion } from "./argv.js";
+import { getPrimaryCommand, hasHelpOrVersion, hasFlag } from "./argv.js";
 import { tryRouteCli } from "./route.js";
 
-type FatalJson = {
-  ok: false;
-  kind: "CLI_FAILED";
-  error: {
-    code: "CLI_FAILED";
-    kind: "cli";
-    name: string;
-    message: string;
-  };
-};
-
-function emitFatalJson(error: unknown): FatalJson {
-  const err = error instanceof Error ? error : new Error(String(error));
-  const payload: FatalJson = {
-    ok: false,
-    kind: "CLI_FAILED",
-    error: {
-      code: "CLI_FAILED",
-      kind: "cli",
-      name: err.name || "Error",
-      message: err.message || "",
-    },
-  };
-
-  // Exactly one JSON line, and no other stdout noise.
-  process.stdout.write(JSON.stringify(payload) + "\n");
-  return payload;
-}
-
-// Test hook: required by vitest contract
-export function __test_emitFatalJson(error: unknown): FatalJson {
-  return emitFatalJson(error);
-}
-export { __test_emitFatalJson as __test__emitFatalJson };
-
+/**
+ * rewriteUpdateFlagArgv keeps compatibility with legacy flag form:
+ *   --update  -> update
+ *
+ * Security posture: deterministic, no network, no IO.
+ */
 export function rewriteUpdateFlagArgv(argv: string[]): string[] {
   const index = argv.indexOf("--update");
-  if (index === -1) {
-    return argv;
-  }
-
+  if (index === -1) return argv;
   const next = [...argv];
   next.splice(index, 1, "update");
   return next;
 }
 
+type FatalJsonError = {
+  ok: false;
+  error: {
+    kind: "cli";
+    code: "UNCAUGHT_EXCEPTION" | "CLI_FAILED";
+    message: string;
+  };
+};
+
+function emitFatalJson(code: FatalJsonError["error"]["code"], err: unknown) {
+  const payload: FatalJsonError = {
+    ok: false,
+    error: {
+      kind: "cli",
+      code,
+      message: formatUncaughtError(err),
+    },
+  };
+  // JSON-first contract: one line, no prefix.
+  process.stdout.write(JSON.stringify(payload) + "\n");
+}
+
+/** Test hook: emits the same fatal JSON used by top-level handlers. */
+export function __test__emitFatalJson(code: FatalJsonError["error"]["code"], err: unknown) {
+  emitFatalJson(code, err);
+}
+
 export async function runCli(argv: string[] = process.argv) {
   const normalizedArgv = stripWindowsNodeExec(argv);
+
+  // Normalize argv early (incl. legacy flags) before any output decisions.
+  const parseArgv = rewriteUpdateFlagArgv(normalizedArgv);
+
+  // Automation guardrails: avoid stdout/stderr noise in these modes.
+  const jsonMode = hasFlag(parseArgv, "--json");
+  const quietMode = hasFlag(parseArgv, "--quiet");
+  const automationMode = jsonMode || quietMode;
+
   loadDotEnv({ quiet: true });
   normalizeEnv();
   ensureOpenClawCliOnPath();
@@ -68,26 +73,35 @@ export async function runCli(argv: string[] = process.argv) {
   // Enforce the minimum supported runtime before doing any work.
   assertSupportedRuntime();
 
-  if (await tryRouteCli(normalizedArgv)) {
+  // Route fast-path commands (may be used by CI / health checks).
+  if (await tryRouteCli(parseArgv)) {
     return;
   }
 
   // Capture all console output into structured logs while keeping stdout/stderr behavior.
-  enableConsoleCapture();
+  // Guardrail: in --json/--quiet, avoid any capture/formatting layers that could emit extra lines.
+  if (!automationMode) {
+    enableConsoleCapture();
+  }
 
   const { buildProgram } = await import("./program.js");
   const program = buildProgram();
 
   // Global error handlers to prevent silent crashes from unhandled rejections/exceptions.
-  // These log the error and exit gracefully instead of crashing without trace.
+  // In --json/--quiet, emit deterministic JSON to stdout.
   installUnhandledRejectionHandler();
 
   process.on("uncaughtException", (error) => {
-    console.error("[openclaw] Uncaught exception:", formatUncaughtError(error));
+    if (jsonMode) {
+      emitFatalJson("UNCAUGHT_EXCEPTION", error);
+      process.exit(1);
+      return;
+    }
+    // stderr is acceptable in non-json modes; keep a clear prefix.
+    console.error("[dalaikarmabot] Uncaught exception:", formatUncaughtError(error));
     process.exit(1);
   });
 
-  const parseArgv = rewriteUpdateFlagArgv(normalizedArgv);
   // Register the primary subcommand if one exists (for lazy-loading)
   const primary = getPrimaryCommand(parseArgv);
   if (primary) {
@@ -103,40 +117,45 @@ export async function runCli(argv: string[] = process.argv) {
     registerPluginCliCommands(program, loadConfig());
   }
 
-  await program.parseAsync(parseArgv);
+  try {
+    await program.parseAsync(parseArgv);
+  } catch (err) {
+    if (jsonMode) {
+      emitFatalJson("CLI_FAILED", err);
+      process.exit(1);
+      return;
+    }
+    console.error("[dalaikarmabot] CLI failed:", formatUncaughtError(err));
+    process.exit(1);
+  }
 }
 
 function stripWindowsNodeExec(argv: string[]): string[] {
-  if (process.platform !== "win32") {
-    return argv;
-  }
+  if (process.platform !== "win32") return argv;
+
   const stripControlChars = (value: string): string => {
     let out = "";
     for (let i = 0; i < value.length; i += 1) {
       const code = value.charCodeAt(i);
-      if (code >= 32 && code !== 127) {
-        out += value[i];
-      }
+      if (code >= 32 && code !== 127) out += value[i];
     }
     return out;
   };
+
   const normalizeArg = (value: string): string =>
-    stripControlChars(value)
-      .replace(/^['"]+|['"]+$/g, "")
-      .trim();
+    stripControlChars(value).replace(/^['"]+|['"]+$/g, "").trim();
+
   const normalizeCandidate = (value: string): string =>
-    normalizeArg(value).replace(/^\\\\\?\\/, "");
+    normalizeArg(value).replace(/^\\\\\\?\\/, "");
+
   const execPath = normalizeCandidate(process.execPath);
   const execPathLower = execPath.toLowerCase();
   const execBase = path.basename(execPath).toLowerCase();
+
   const isExecPath = (value: string | undefined): boolean => {
-    if (!value) {
-      return false;
-    }
+    if (!value) return false;
     const normalized = normalizeCandidate(value);
-    if (!normalized) {
-      return false;
-    }
+    if (!normalized) return false;
     const lower = normalized.toLowerCase();
     return (
       lower === execPathLower ||
@@ -147,17 +166,13 @@ function stripWindowsNodeExec(argv: string[]): string[] {
       (path.basename(lower) === "node.exe" && fs.existsSync(normalized))
     );
   };
+
   const filtered = argv.filter((arg, index) => index === 0 || !isExecPath(arg));
-  if (filtered.length < 3) {
-    return filtered;
-  }
+  if (filtered.length < 3) return filtered;
+
   const cleaned = [...filtered];
-  if (isExecPath(cleaned[1])) {
-    cleaned.splice(1, 1);
-  }
-  if (isExecPath(cleaned[2])) {
-    cleaned.splice(2, 1);
-  }
+  if (isExecPath(cleaned[1])) cleaned.splice(1, 1);
+  if (isExecPath(cleaned[2])) cleaned.splice(2, 1);
   return cleaned;
 }
 

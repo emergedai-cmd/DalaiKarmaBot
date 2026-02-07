@@ -393,20 +393,33 @@ export async function register(program: Command) {
     });
 
   // --- run ---
-  program
-    .command("run")
-    .description("Run a minimal chat loop")
-    .requiredOption("--provider <name>", "Provider to use (ollama | groq | openrouter | deepseek | mistral)")
-    .requiredOption("--model <name>", "Model name (e.g. llama3, llama-3.1-8b-instant, openai/gpt-4o-mini)")
-    .option("--prompt <text>", "One-shot prompt (no interactive loop)")
-    .option("--timeout <ms>", "Timeout per request in milliseconds", "15000")
-    .action(async (opts: { provider: string; model: string; prompt?: string; timeout?: string }) => {
-      const timeoutMs = Number(opts.timeout);
-      await runRun(process.cwd(), {
-        provider: opts.provider,
-        model: opts.model,
-        prompt: opts.prompt,
-        timeoutMs: Number.isFinite(timeoutMs) ? timeoutMs : 15000
-      });
+program
+  .command("run")
+  .description("Run a minimal chat loop (first runtime path)")
+  .option("--provider <name>", "ollama | groq | openrouter | deepseek | mistral", "groq")
+  .option("--model <model>", "model name", "llama-3.1-8b-instant")
+  .option("--prompt <text>", "one-shot prompt (if omitted, interactive mode)")
+  .option("--temperature <n>", "sampling temperature (e.g. 0.7)", (v) => Number(v))
+  .option("--max-tokens <n>", "max output tokens (e.g. 256)", (v) => Number(v))
+  .option("--json", "print machine-readable JSON (requires --prompt)")
+  .option("--timeout-ms <n>", "request timeout in ms", (v) => Number(v), 15000)
+  .option("--timeout <n>", "alias for --timeout-ms (deprecated)", (v) => Number(v))
+  .action(async (opts) => {
+    const timeoutRaw = (opts.timeoutMs ?? opts.timeout ?? 15000) as number;
+    const timeoutMs = Number(timeoutRaw);
+
+    const temperature = opts.temperature !== undefined ? Number(opts.temperature) : undefined;
+    const maxTokens = opts.maxTokens !== undefined ? Number(opts.maxTokens) : undefined;
+
+    await runRun(process.cwd(), {
+      provider: opts.provider,
+      model: opts.model,
+      prompt: opts.prompt,
+      json: !!opts.json,
+      temperature: Number.isFinite(temperature as number) ? (temperature as number) : undefined,
+      maxTokens: Number.isFinite(maxTokens as number) ? (maxTokens as number) : undefined,
+      timeoutMs: Number.isFinite(timeoutMs) ? timeoutMs : 15000,
     });
+  });
+
 }
